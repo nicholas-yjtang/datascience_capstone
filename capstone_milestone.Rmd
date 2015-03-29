@@ -1,5 +1,5 @@
 ---
-title: "Datascience Captsone Milestone"
+title: "Datascience Capstone Milestone"
 author: "Nicholas Tang"
 date: "Saturday, March 28, 2015"
 output: html_document
@@ -7,9 +7,23 @@ output: html_document
 
 The following document is an analysis of the data given. We will be focusing on interest in the English corpus as provided by HC Corpora (http://www.corpora.heliohost.org/)
 
-For our exploratory analysis, we will take a small sample of the original data (5% of the original data, randomly sampled)
+The original rmd file can be found at https://github.com/nicholas-yjtang/datascience_capstone
 
-```{r, eval=FALSE}
+##Sampling
+
+For our exploratory analysis, we will take a small sample of the original data (5% of the original data, randomly sampled using rbinom).  
+The resulting sample is also cleaned of some common swear words. This sample is subsequently saved into a text file (which you can find in the above link). The original rmd file contains the code that will create the relevant sample
+
+```{r, cache=TRUE, echo=FALSE, eval=FALSE}
+
+clean_text <- function (original_text) {
+  new_text <- original_text
+  new_text <- new_text[!grepl("dick", new_text, ignore.case=TRUE)]
+  new_text <- new_text[!grepl("fuck", new_text, ignore.case=TRUE)]
+  new_text <- new_text[!grepl("bitch", new_text, ignore.case=TRUE)]
+  new_text <- new_text[!grepl("ass", new_text, ignore.case=TRUE)]
+  new_text
+}
 
 sample_rate = 0.05
 conn <- file ("data/en_US.twitter.txt")
@@ -36,20 +50,13 @@ news_clean <- clean_text(news_original[sample_index])
 write(news_clean, "sample_data/en_US.news.txt")
 close(conn)
 
-clean_text <- function (original_text) {
-  new_text <- original_text
-  new_text <- new_text[!grepl("dick", new_text, ignore.case=TRUE)]
-  new_text <- new_text[!grepl("fuck", new_text, ignore.case=TRUE)]
-  new_text <- new_text[!grepl("bitch", new_text, ignore.case=TRUE)]
-  new_text <- new_text[!grepl("ass", new_text, ignore.case=TRUE)]
-  new_text
-}
 
 ```
 
-After we have created a relatively safe sample, we will save the text and 
+##Word counts, line counts and basic data tables
+With the safe sample, we will do some simple analysis of the data in the 3 different types of texts  
 
-```{r, echo=FALSE}
+```{r, cache=TRUE, echo=FALSE}
 conn <- file ("sample_data/en_US.twitter.txt")
 twits_clean <- readLines(conn)
 close(conn)
@@ -81,4 +88,152 @@ unique_words_percentage <- function(df, percentage) {
 
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+We summarise the information of our sample with the following table  
+
+```{r, warning=FALSE, echo=FALSE, cache=TRUE}
+library(tau)
+ngram=1
+split_string="[[:space:],.;:\"]"
+news_count = textcnt(news_clean, method="string", n=ngram,split=split_string)
+news_df = data.frame(counts=unclass(news_count), size=nchar(names(news_count)))
+news_df = news_df [order(-news_df$counts),]
+
+twits_count = textcnt(twits_clean, method="string", n=ngram,split=split_string)
+twits_df = data.frame(counts=unclass(twits_count), size=nchar(names(twits_count)))
+twits_df = twits_df [order(-twits_df$counts),]
+
+blogs_count = textcnt(blogs_clean, method="string", n=ngram,split=split_string)
+blogs_df = data.frame(counts=unclass(blogs_count), size=nchar(names(blogs_count)))
+blogs_df = blogs_df [order(-blogs_df$counts),]
+```
+
+```{r, warning=FALSE, echo=FALSE, results='asis'}
+library(pander)
+panderOptions('table.split.table', Inf)
+summary_df = data.frame(data=c("news", "twits", "blogs"), 
+                        document_rows=c(length(news_clean), length(twits_clean), length(blogs_clean)),
+                        total_words=c(sum(news_df$counts), sum(twits_df$counts), sum(blogs_df$counts))
+                        )
+pander(summary_df)
+```
+
+
+We take a look at some of the distribution of the  words in the text by looking at the news data, looking at the top 10 words
+
+```{r, echo=FALSE, results='asis'}
+pander(news_df[1:10,])
+
+```
+
+
+We also look at the distribution of the text in the twits data, looking at the top 10 words
+
+```{r, echo=FALSE, results='asis'}
+pander(twits_df[1:10,])
+
+```
+
+
+We also look at the distribution of the text in the blogs data, looking at the top 10 words
+
+```{r, echo=FALSE, results='asis'}
+pander(blogs_df[1:10,])
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE}
+news_df$word <- rownames(news_df)
+twits_df$word <- rownames(twits_df)
+blogs_df$word <- rownames(blogs_df)
+library(grid)
+multiplot <- function(..., plotlist=NULL, cols) {
+
+    # Make a list from the ... arguments and plotlist
+    plots <- c(list(...), plotlist)
+
+    numPlots = length(plots)
+
+    # Make the panel
+    plotCols = cols                          # Number of columns of plots
+    plotRows = ceiling(numPlots/plotCols) # Number of rows needed, calculated from # of cols
+
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(plotRows, plotCols)))
+    vplayout <- function(x, y)
+        viewport(layout.pos.row = x, layout.pos.col = y)
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+        curRow = ceiling(i/plotCols)
+        curCol = (i-1) %% plotCols + 1
+        print(plots[[i]], vp = vplayout(curRow, curCol ))
+    }
+
+}
+
+```
+
+##Basic plots
+
+The following are the histograms for the new, twits and blogs data (for word frequency)
+
+```{r, echo=FALSE,warning=FALSE}
+library(ggplot2)
+plot1<-ggplot(news_df[1:10,], aes(x=reorder(word,-counts), y=counts)) + geom_bar(binwidth=1, stat="identity") + xlab("word(news data)")
+plot2<-ggplot(twits_df[1:10,], aes(x=reorder(word,-counts), y=counts)) + geom_bar(binwidth=1, stat="identity") + xlab("word(twits data)")
+plot3<-ggplot(blogs_df[1:10,], aes(x=reorder(word,-counts), y=counts)) + geom_bar(binwidth=1, stat="identity") + xlab("word(blogs data)")
+multiplot(plot1,plot2,plot3,cols=2)
+```
+
+A summary of the number of unique words required to hit 50% and 90% of the total
+
+```{r, warning=FALSE, echo=FALSE, results='asis'}
+summary_df = data.frame(data=c("news", "twits", "blogs"), 
+                        unique_words_to_hit_50=c(unique_words_percentage(news_df,0.5), unique_words_percentage(twits_df,0.5), unique_words_percentage(blogs_df, 0.5)),
+                        unique_words_to_hit_90=c(unique_words_percentage(news_df,0.9), unique_words_percentage(twits_df,0.9), unique_words_percentage(blogs_df, 0.9))
+                        )
+pander(summary_df)
+```
+
+##2gram analysis
+
+```{r, warning=FALSE, echo=FALSE, cache=TRUE}
+
+combine_clean = c(news_clean, twits_clean, blogs_clean)
+ngram=2
+combine_count = textcnt(combine_clean, method="string", n=ngram,split=split_string)
+combine_df_2 = data.frame(counts=unclass(combine_count), size=nchar(names(combine_count)))
+combine_df_2 = combine_df_2 [order(-combine_df_2$counts),]
+
+
+```
+
+We take a look at some of the distribution of the  words in the text by looking at the combined clean data, looking at the top 10 2gram words
+
+```{r, echo=FALSE, results='asis'}
+pander(combine_df_2[1:10,])
+
+```
+
+
+##3gram analysis
+
+```{r, warning=FALSE, echo=FALSE, cache=TRUE}
+ngram=3
+combine_count = textcnt(combine_clean, method="string", n=ngram,split=split_string)
+combine_df_3 = data.frame(counts=unclass(combine_count), size=nchar(names(combine_count)))
+combine_df_3 = combine_df_3 [order(-combine_df_3$counts),]
+
+```
+
+We take a look at some of the distribution of the  words in the text by looking at the combine data, looking at the top 10 3gram words
+
+```{r, echo=FALSE, results='asis'}
+pander(combine_df_3[1:10,])
+
+```
+
+##Plan for modelling and prediction
+
