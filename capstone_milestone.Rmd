@@ -9,6 +9,8 @@ The following document is an analysis of the data given. We will be focusing on 
 
 The original rmd file can be found at https://github.com/nicholas-yjtang/datascience_capstone
 
+Our goal is to predict the next word/text, given either some (or none) of the previous words that have been typed into a smartphone
+
 ##Sampling
 
 For our exploratory analysis, we will take a small sample of the original data (5% of the original data, randomly sampled using rbinom).  
@@ -187,7 +189,8 @@ plot3<-ggplot(blogs_df[1:10,], aes(x=reorder(word,-counts), y=counts)) + geom_ba
 multiplot(plot1,plot2,plot3,cols=2)
 ```
 
-A summary of the number of unique words required to hit 50% and 90% of the total
+A summary of the number of unique words required to hit 50% and 90% of the total number of words in the data for each data type.  
+
 
 ```{r, warning=FALSE, echo=FALSE, results='asis'}
 summary_df = data.frame(data=c("news", "twits", "blogs"), 
@@ -198,6 +201,8 @@ pander(summary_df)
 ```
 
 ##2gram analysis
+
+In order to better predict words (rather than simply using the most frequent word), we need to analyse the sequence of words. 2gram simply means a sequence of two words together in a sentence
 
 ```{r, warning=FALSE, echo=FALSE, cache=TRUE}
 
@@ -210,7 +215,7 @@ combine_df_2 = combine_df_2 [order(-combine_df_2$counts),]
 
 ```
 
-We take a look at some of the distribution of the  words in the text by looking at the combined clean data, looking at the top 10 2gram words
+We take a look at some of the distribution of the  words in the text by looking at the combined clean data, looking at the top 10, 2 words
 
 ```{r, echo=FALSE, results='asis'}
 pander(combine_df_2[1:10,])
@@ -219,6 +224,8 @@ pander(combine_df_2[1:10,])
 
 
 ##3gram analysis
+
+3gram is a sequence of 3 words together
 
 ```{r, warning=FALSE, echo=FALSE, cache=TRUE}
 ngram=3
@@ -237,3 +244,12 @@ pander(combine_df_3[1:10,])
 
 ##Plan for modelling and prediction
 
+By utilising the information we have in our sampled data, we intend to do the following  
+1. Create various models of the 1,2,3,4 word phrases  
+2. Perform a simple lookup to compare the sequence of the most number of words observed with the models. If it exists, return the next word with the most frequency  
+3. If the sequence doesn't exist, go back to a smaller sequence (eg from 3, go to 2). Repeat until the word is found and returned  
+
+
+The application that we will build on shiny.io will therefore contain the following  
+1. A input box area for the user to type in text that has been typed so far (aka the history)  
+2. Output of the word that is expected  
