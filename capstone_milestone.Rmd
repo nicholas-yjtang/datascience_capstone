@@ -1,0 +1,84 @@
+---
+title: "Datascience Captsone Milestone"
+author: "Nicholas Tang"
+date: "Saturday, March 28, 2015"
+output: html_document
+---
+
+The following document is an analysis of the data given. We will be focusing on interest in the English corpus as provided by HC Corpora (http://www.corpora.heliohost.org/)
+
+For our exploratory analysis, we will take a small sample of the original data (5% of the original data, randomly sampled)
+
+```{r, eval=FALSE}
+
+sample_rate = 0.05
+conn <- file ("data/en_US.twitter.txt")
+twits_original <- readLines(conn)
+set.seed(12345)
+sample_index = which (rbinom (length(twits_original),1,sample_rate) %in% c(1))
+twits_clean <- clean_text(twits_original[sample_index])
+write(twits_clean, "sample_data/en_US.twitter.txt")
+close(conn)
+
+conn <- file ("data/en_US.blogs.txt")
+blogs_original <- readLines (conn)
+set.seed(12345)
+sample_index = which (rbinom (length(blogs_original),1,sample_rate) %in% c(1))
+blogs_clean <- clean_text(blogs_original[sample_index])
+write(blogs_clean, "sample_data/en_US.blogs.txt")
+close(conn)
+
+conn <- file ("data/en_US.news.txt")
+news_original <- readLines (conn)
+set.seed(12345)
+sample_index = which (rbinom (length(news_original),1,sample_rate) %in% c(1))
+news_clean <- clean_text(news_original[sample_index])
+write(news_clean, "sample_data/en_US.news.txt")
+close(conn)
+
+clean_text <- function (original_text) {
+  new_text <- original_text
+  new_text <- new_text[!grepl("dick", new_text, ignore.case=TRUE)]
+  new_text <- new_text[!grepl("fuck", new_text, ignore.case=TRUE)]
+  new_text <- new_text[!grepl("bitch", new_text, ignore.case=TRUE)]
+  new_text <- new_text[!grepl("ass", new_text, ignore.case=TRUE)]
+  new_text
+}
+
+```
+
+After we have created a relatively safe sample, we will save the text and 
+
+```{r, echo=FALSE}
+conn <- file ("sample_data/en_US.twitter.txt")
+twits_clean <- readLines(conn)
+close(conn)
+
+conn <- file ("sample_data/en_US.blogs.txt")
+blogs_clean <- readLines(conn)
+close(conn)
+
+conn <- file ("sample_data/en_US.news.txt")
+news_clean <- readLines (conn)
+close(conn)
+rm(conn)
+
+unique_words_percentage <- function(df, percentage) {
+  total_count = sum(df$count) * percentage
+  current_count = 0
+  unique_words = 0
+  for(i in 1:nrow(df)) {
+    if (current_count < total_count) {
+      current_count = current_count + df[i,"counts"]
+      unique_words = unique_words + 1
+    }
+    else {
+      break
+    }
+  }  
+  unique_words
+}
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
